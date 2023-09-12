@@ -1,3 +1,5 @@
+from collections import deque
+
 from pygame.locals import *
 import pygame
 
@@ -6,6 +8,7 @@ from Maze import *
 from Constants import *
 from BlockOnMap import *
 from AStar import *
+from Prolog.EgnimaSolver import *
 
 
 class App:
@@ -39,6 +42,12 @@ class App:
         self.player.set_position(self.maze.start[0], self.maze.start[1])
         self.player.set_size(PLAYER_SIZE*self.maze.tile_size_x, PLAYER_SIZE*self.maze.tile_size_x)
         self._image_surf = pygame.transform.scale(self._image_surf, self.player.get_size())
+        self.enigma_solver = EnigmaSolver()
+        self.path = []
+        self.visited = []
+        self.values = ['C','T']
+        self.allowed_deviation = 1000
+        self.on_side_path = False
 
     def on_keyboard_input(self, keys):
         if keys[K_RIGHT] or keys[K_d]:
@@ -67,12 +76,14 @@ class App:
             # you need to win all four rounds to beat it
 
         if keys[K_SPACE]:
-            print(self.maze.look_at_door(self.player))
+            env = self.maze.look_at_door(self.player, self._display_surf)
+            print(env)
+            self.enigma_solver.__set_enigma_state__(env)
             # returns the state of the doors you can currently see
             # you need to unlock it by providing the correct key
 
         if keys[K_u]:
-            self.maze.unlock_door('first')
+            self.maze.unlock_door(self.enigma_solver.__solve_enigma__())
             # returns true if the door is unlocked, false if the answer is incorrect and the door remains locked
             # if the door is unlocked you can pass through it (no visible change... yet)
 
@@ -225,8 +236,58 @@ class App:
 
         if start_block and end_block:
             astar = AStar(blocks_on_map)
-            path = astar.astar(start_block)
+            path = astar.astar(start_block, end_block)
+        self.path = []
+        current_path = path
+        while current_path.parent != None:
+            self.path.append(current_path)
+            current_path = current_path.parent
+        self.path.append(current_path)
 
+        print(len(self.path))
+        while len(self.path) > 0:
+            current_node = self.path.pop()
+            print(str(current_node.block_on_map.x) + str(current_node.block_on_map.y) )
+            if (len(self.path)  == 0 and self.on_side_path) or not self.on_side_path:
+                costs = []
+                possible_paths = []
+                for block in blocks_on_map:
+                    if block.value in self.values and not (block in self.visited):
+                        if current_node and block:
+                            astar = AStar(blocks_on_map)
+                            path = astar.astar(current_node.block_on_map, block)
+                            possible_paths.append(path)
+                            costs.append(path.f_value)
+                if len(costs) > 0 and  min(costs) < self.allowed_deviation:
+                    min_index = costs.index(min(costs))
+                    self.on_side_path = True
+                    self.path = possible_paths[min_index]
+                    current_path = path
+                    self.visited.append(path.block_on_map)
+                    self.path = []
+                    while current_path.parent != None:
+                        self.path.append(current_path)
+                        current_path = current_path.parent
+                    self.path.append(current_path)
+                elif self.on_side_path:
+                    self.on_side_path = False
+                    for block in blocks_on_map:
+                        if block == current_node.block_on_map:
+                            start_block = block
+                        elif block.value == 'E':
+                            end_block = block
+
+                    if start_block and end_block:
+                        astar = AStar(blocks_on_map)
+                        path = astar.astar(start_block, end_block)
+                    self.path = []
+                    current_path = path
+                    while current_path.parent != None:
+                        self.path.append(current_path)
+                        current_path = current_path.parent
+                    self.path.append(current_path)
+        for vis in self.visited:
+            print(str(vis.x) + str(vis.y))
         while self._running:
             self._clock.tick(GAME_CLOCK)
             for event in pygame.event.get():

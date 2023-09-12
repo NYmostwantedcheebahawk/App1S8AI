@@ -14,7 +14,7 @@ class AStar:
                     neighbors.append(BlockOnMapNode(neighbor, block.g_value+1, block.g_value+1+neighbor.heuristics, str(neighbor.x) + str(neighbor.y),block))
         return neighbors
 
-    def astar(self, start):
+    def astar(self, start ,end):
         frontier = []
 
         frontier.append(BlockOnMapNode(start, 0, start.heuristics,str(start.x) + str(start.y),None))
@@ -27,7 +27,7 @@ class AStar:
                 if node.symbole in reached_state:
                     frontier.remove(node)
 
-            if pursuing_node.block_on_map.value == "E":
+            if pursuing_node.block_on_map == end:
                 return pursuing_node
 
             neighbors = self.get_neighbors(pursuing_node)
