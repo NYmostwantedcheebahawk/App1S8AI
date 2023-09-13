@@ -1,10 +1,11 @@
 from pygame.locals import *
 
-from Player import *
+from InLinePlanning.Player import *
 from Maze import *
 from Constants import *
 from InLinePlanning.InLinePlanner import *
 from Prolog.EnigmaSolver import *
+from FuzzyLogic.FuzzyLogic import *
 
 
 class App:
@@ -40,6 +41,7 @@ class App:
         self._image_surf = pygame.transform.scale(self._image_surf, self.player.get_size())
         self.enigma_solver = EnigmaSolver()
         self.in_line_planner = InLinePlanner(self.maze, 40)
+        self.fuzzy_logic = FuzzyLogic()
 
     def on_keyboard_input(self, keys):
         if keys[K_RIGHT] or keys[K_d]:
@@ -56,7 +58,7 @@ class App:
 
         # Utility functions for AI
         if keys[K_p]:
-            self.maze.make_perception_list(self.player, self._display_surf)
+            print(self.maze.make_perception_list(self.player, self._display_surf))
             # returns a list of 5 lists of pygame.rect inside the perception radius
             # the 4 lists are [wall_list, obstacle_list, item_list, monster_list, door_list]
             # item_list includes coins and treasure
@@ -198,8 +200,10 @@ class App:
     def on_execute(self):
         self.on_init()
         # get the matrix of the maze
-        path = self.in_line_planner.__in_line_planning__()
+        path = self.in_line_planner.__in_line_planning__()[0]
+        current = path.pop()
         while self._running:
+            #next_tile = path.pop()
             self._clock.tick(GAME_CLOCK)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -226,6 +230,7 @@ class App:
                 self._running = False
                 self._win = True
             self.on_render()
+            #current = next_tile
 
         while self._win:
             for event in pygame.event.get():
@@ -238,5 +243,4 @@ class App:
                 if event.type == pygame.QUIT:
                     self._dead = False
             self.on_death_render()
-
         self.on_cleanup()

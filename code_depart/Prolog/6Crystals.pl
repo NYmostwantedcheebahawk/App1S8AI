@@ -15,6 +15,6 @@ obtainKey(Env, Res) :-
     (condition1(Env), Res = third) ;  % If condition1 is true, set Res to third
     (condition2(Env), Res = fourth) ;  % If condition1 is true, set Res to third
     (condition3(Env), Res = sixth) ;  % If condition3 is true, set Res to sixth
-    \+ (condition1(Env) ; condition3(Env)), Res = fourth.
+    \+ (condition1(Env); condition2(Env) ; condition3(Env)), Res = fourth.
 
 
