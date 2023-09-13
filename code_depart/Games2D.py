@@ -41,7 +41,7 @@ class App:
         self._image_surf = pygame.transform.scale(self._image_surf, self.player.get_size())
         self.enigma_solver = EnigmaSolver()
         self.in_line_planner = InLinePlanner(self.maze, 40)
-        self.fuzzy_logic = FuzzyLogic()
+        self.fuzzy_logic = FuzzyLogic(self.player, self.maze.tile_size_x, self.maze.tile_size_y)
 
     def on_keyboard_input(self, keys):
         if keys[K_RIGHT] or keys[K_d]:
@@ -85,18 +85,19 @@ class App:
             self._running = False
 
     # FONCTION À Ajuster selon votre format d'instruction
-    def on_AI_input(self, instruction):
-        if instruction == 'RIGHT':
-            self.move_player_right()
+    def on_AI_input(self, instructions):
+        for instruction in instructions:
+            if instruction == K_RIGHT:
+                self.move_player_right()
 
-        if instruction == 'LEFT':
-            self.move_player_left()
+            if instruction == K_LEFT:
+                self.move_player_left()
 
-        if instruction == 'UP':
-            self.move_player_up()
+            if instruction == K_UP:
+                self.move_player_up()
 
-        if instruction == 'DOWN':
-            self.move_player_down()
+            if instruction == K_DOWN:
+                self.move_player_down()
 
     def on_collision(self):
         return self.on_wall_collision() or self.on_obstacle_collision() or self.on_door_collision()
@@ -201,9 +202,12 @@ class App:
         self.on_init()
         # get the matrix of the maze
         path = self.in_line_planner.__in_line_planning__()[0]
-        current = path.pop()
+        current = path[len(path)-1].parent
+        next_tile = path[len(path)-1]
+        self.fuzzy_logic.set_path(path)
+        self.fuzzy_logic.set_original_coord(current,next_tile)
         while self._running:
-            #next_tile = path.pop()
+            instructions =  self.fuzzy_logic.prepareInputs(self.maze.make_perception_list(self.player, self._display_surf))
             self._clock.tick(GAME_CLOCK)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -212,8 +216,9 @@ class App:
                     self.timer += 0.01
             pygame.event.pump()
             keys = pygame.key.get_pressed()
-            self.on_keyboard_input(keys)
-            # self.on_AI_input(instruction)
+            #self.on_keyboard_input(keys)
+            self.player.get_position()
+            self.on_AI_input(instructions)
             if self.on_coin_collision():
                 self.score += 1
             if self.on_treasure_collision():
