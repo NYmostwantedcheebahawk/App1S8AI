@@ -43,8 +43,8 @@ class ObstacleAvoidance:
         corridor_walls = self._find_corridor(target_direction)
         if self.show_corridor_debug:
             self._visualize_corridor(corridor_walls, target_direction)
-        obstacles_in_path = self._collisions_in_path(target_direction, self._obstacle_list, corridor_walls, should_avoid=True)
-        
+        obstacles_in_path_by_distance = self._collisions_in_path(target_direction, self._obstacle_list, should_avoid=True)
+        obstacles_in_path = [collider_in_path[1] for collider_in_path in obstacles_in_path_by_distance]
         keypresses = [target_direction]
         if len(obstacles_in_path):
             avoidance_keypress = self._avoid_collision(target_direction, corridor_walls, obstacles_in_path[0])
@@ -81,7 +81,7 @@ class ObstacleAvoidance:
             corridor_walls[corridor_wall_idx] = closest_wall_along_dim
         return corridor_walls
 
-    def _collisions_in_path(self, target_direction, colliders, corridor, should_avoid):
+    def _collisions_in_path(self, target_direction, colliders, should_avoid):
         player_rect = self._player.get_rect()
         colliders_in_path = []
         for collider in colliders:
@@ -124,8 +124,7 @@ class ObstacleAvoidance:
             return []
         # Sort by distance.
         colliders_in_path.sort(key=lambda x: x[0])
-        # Return obstacles only.
-        return [collider_in_path[1] for collider_in_path in colliders_in_path]
+        return colliders_in_path
 
     def _avoid_collision(self, target_direction, corridor, collider):
         player_rect = self._player.get_rect()
@@ -171,7 +170,7 @@ class ObstacleAvoidance:
 
     def _check_secondary_collision(self, avoidance_direction, collider):
         player_rect = self._player.get_rect()
-        colliders_in_path = self._collisions_in_path(avoidance_direction, self._obstacle_list, [None, None], should_avoid=True)
+        colliders_in_path = self._collisions_in_path(avoidance_direction, self._obstacle_list, should_avoid=True)
         for collider_in_path in colliders_in_path:
             should_replan = False
             if avoidance_direction == K_LEFT:
