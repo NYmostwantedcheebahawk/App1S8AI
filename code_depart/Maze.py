@@ -118,7 +118,7 @@ class Maze:
         for item in self.monsterList:
             display_surf.blit(self._monster_surf, item.rect.topleft)
 
-    def make_perception_list(self, player_current, display_surf):
+    def make_perception_list(self, player_current, display_surf, visualize=False):
         perception_distance = PERCEPTION_RADIUS * max(self.tile_size_x, self.tile_size_y)
         perception_left = player_current.x + 0.5 * (player_current.size_x - perception_distance)
         perception_top = player_current.y + 0.5 * (player_current.size_y - perception_distance)
@@ -142,9 +142,10 @@ class Maze:
             door_list.append(self.doorList[i])
 
         # POUR DEBUG - tenir la touche "p" pour voir la zone de perception
-        # pygame.draw.rect(display_surf, GREEN, perception_rect)
-        # pygame.display.flip()
-        # print([wall_list, obstacle_list, item_list, monster_list])
+        if visualize:
+            pygame.draw.rect(display_surf, GREEN, perception_rect)
+            pygame.display.flip()
+            print([wall_list, obstacle_list, item_list, monster_list])
         return [wall_list, obstacle_list, item_list, monster_list, door_list]
 
     def look_at_door(self, player_current, display_surf):
