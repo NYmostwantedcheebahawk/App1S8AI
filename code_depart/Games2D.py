@@ -1,14 +1,10 @@
-from collections import deque
-
 from pygame.locals import *
-import pygame
 
 from Player import *
 from Maze import *
 from Constants import *
-from BlockOnMap import *
-from AStar import *
-from Prolog.EgnimaSolver import *
+from InLinePlanning.InLinePlanner import *
+from Prolog.EnigmaSolver import *
 
 
 class App:
@@ -43,11 +39,7 @@ class App:
         self.player.set_size(PLAYER_SIZE*self.maze.tile_size_x, PLAYER_SIZE*self.maze.tile_size_x)
         self._image_surf = pygame.transform.scale(self._image_surf, self.player.get_size())
         self.enigma_solver = EnigmaSolver()
-        self.path = []
-        self.visited = []
-        self.values = ['C','T']
-        self.allowed_deviation = 1000
-        self.on_side_path = False
+        self.in_line_planner = InLinePlanner(self.maze, 40)
 
     def on_keyboard_input(self, keys):
         if keys[K_RIGHT] or keys[K_d]:
@@ -203,91 +195,10 @@ class App:
     def on_cleanup(self):
         pygame.quit()
 
-    def define_coordinates_value_heuristics(self, maze_matrix):
-        end_x, end_y = None, None
-        for y, row in enumerate(maze_matrix):
-            for x, value in enumerate(row):
-                if value == 'E':
-                    end_x, end_y = x, y
-                    break
-
-        # Initialize BlockOnMap objects and calculate heuristics
-        block_objects = []
-        if end_x is not None and end_y is not None:
-            for y, row in enumerate(maze_matrix):
-                for x, value in enumerate(row):
-                    if value != '1':
-                        heuristic = abs(x - end_x) + abs(y - end_y)
-                        block = BlockOnMap(x, y, value, heuristic)
-                        block_objects.append(block)
-        return block_objects
-
     def on_execute(self):
         self.on_init()
         # get the matrix of the maze
-        blocks_on_map = self.define_coordinates_value_heuristics(self.maze.maze)
-        start_block = None
-        end_block = None
-        for block in blocks_on_map:
-            if block.value == 'S':
-                start_block = block
-            elif block.value == 'E':
-                end_block = block
-
-        if start_block and end_block:
-            astar = AStar(blocks_on_map)
-            path = astar.astar(start_block, end_block)
-        self.path = []
-        current_path = path
-        while current_path.parent != None:
-            self.path.append(current_path)
-            current_path = current_path.parent
-        self.path.append(current_path)
-
-        print(len(self.path))
-        while len(self.path) > 0:
-            current_node = self.path.pop()
-            print(str(current_node.block_on_map.x) + str(current_node.block_on_map.y) )
-            if (len(self.path)  == 0 and self.on_side_path) or not self.on_side_path:
-                costs = []
-                possible_paths = []
-                for block in blocks_on_map:
-                    if block.value in self.values and not (block in self.visited):
-                        if current_node and block:
-                            astar = AStar(blocks_on_map)
-                            path = astar.astar(current_node.block_on_map, block)
-                            possible_paths.append(path)
-                            costs.append(path.f_value)
-                if len(costs) > 0 and  min(costs) < self.allowed_deviation:
-                    min_index = costs.index(min(costs))
-                    self.on_side_path = True
-                    self.path = possible_paths[min_index]
-                    current_path = path
-                    self.visited.append(path.block_on_map)
-                    self.path = []
-                    while current_path.parent != None:
-                        self.path.append(current_path)
-                        current_path = current_path.parent
-                    self.path.append(current_path)
-                elif self.on_side_path:
-                    self.on_side_path = False
-                    for block in blocks_on_map:
-                        if block == current_node.block_on_map:
-                            start_block = block
-                        elif block.value == 'E':
-                            end_block = block
-
-                    if start_block and end_block:
-                        astar = AStar(blocks_on_map)
-                        path = astar.astar(start_block, end_block)
-                    self.path = []
-                    current_path = path
-                    while current_path.parent != None:
-                        self.path.append(current_path)
-                        current_path = current_path.parent
-                    self.path.append(current_path)
-        for vis in self.visited:
-            print(str(vis.x) + str(vis.y))
+        path = self.in_line_planner.__in_line_planning__()
         while self._running:
             self._clock.tick(GAME_CLOCK)
             for event in pygame.event.get():

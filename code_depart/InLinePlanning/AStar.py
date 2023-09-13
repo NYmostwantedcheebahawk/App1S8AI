@@ -1,4 +1,4 @@
-from BlockOnMap import BlockOnMapNode
+from InLinePlanning.BlockOnMap import BlockOnMapNode
 
 class AStar:
     def __init__(self, blocks_on_map):
