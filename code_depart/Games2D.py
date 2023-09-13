@@ -1,6 +1,6 @@
 from pygame.locals import *
 import pygame
-
+from ObstacleAvoidance import ObstacleAvoidance
 from Player import *
 from Maze import *
 from Constants import *
@@ -25,10 +25,12 @@ class App:
         self.timer = 0.0
         self.player = Player()
         self.maze = Maze(mazefile)
+        self._obstacle_avoidance = ObstacleAvoidance(self.player)
 
     def on_init(self):
         pygame.init()
         self._display_surf = pygame.display.set_mode((self.windowWidth, self.windowHeight), pygame.HWSURFACE)
+        self._obstacle_avoidance.set_display_surface(self._display_surf)
         self._clock = pygame.time.Clock()
         pygame.display.set_caption("Dungeon Crawler")
         pygame.time.set_timer(pygame.USEREVENT, 10)
@@ -41,21 +43,32 @@ class App:
         self._image_surf = pygame.transform.scale(self._image_surf, self.player.get_size())
 
     def on_keyboard_input(self, keys):
+        perception_list = self.maze.make_perception_list(self.player, self._display_surf)
+        self._obstacle_avoidance.set_perception_list(perception_list)
+
+        obstacle_avoidance_keys = []
         if keys[K_RIGHT] or keys[K_d]:
-            self.move_player_right()
+            obstacle_avoidance_keys = self._obstacle_avoidance.get_keypress(K_RIGHT)
+        elif keys[K_LEFT] or keys[K_a]:
+            obstacle_avoidance_keys = self._obstacle_avoidance.get_keypress(K_LEFT)
+        elif keys[K_UP] or keys[K_w]:
+            obstacle_avoidance_keys = self._obstacle_avoidance.get_keypress(K_UP)
+        elif keys[K_DOWN] or keys[K_s]:
+            obstacle_avoidance_keys = self._obstacle_avoidance.get_keypress(K_DOWN)
 
-        if keys[K_LEFT] or keys[K_a]:
-            self.move_player_left()
-
-        if keys[K_UP] or keys[K_w]:
-            self.move_player_up()
-
-        if keys[K_DOWN] or keys[K_s]:
-            self.move_player_down()
+        for avoidance_key in obstacle_avoidance_keys:
+            if (avoidance_key == K_RIGHT):
+                self.move_player_right()
+            if (avoidance_key == K_LEFT):
+                self.move_player_left()
+            if (avoidance_key == K_UP):
+                self.move_player_up()
+            if (avoidance_key == K_DOWN):
+                self.move_player_down()
 
         # Utility functions for AI
         if keys[K_p]:
-            self.maze.make_perception_list(self.player, self._display_surf)
+            self.maze.make_perception_list(self.player, self._display_surf, visualize=True)
             # returns a list of 5 lists of pygame.rect inside the perception radius
             # the 4 lists are [wall_list, obstacle_list, item_list, monster_list, door_list]
             # item_list includes coins and treasure
