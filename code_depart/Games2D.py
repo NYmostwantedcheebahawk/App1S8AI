@@ -7,6 +7,7 @@ from InLinePlanning.InLinePlanner import *
 from Prolog.EnigmaSolver import *
 from TileNavigation import TileNavigation
 from ObstacleAvoidance import ObstacleAvoidance
+from FightGA import *
 
 class App:
     windowWidth = WIDTH
@@ -247,6 +248,15 @@ class App:
                 self.score += 10
             monster = self.on_monster_collision()
             if monster:
+
+                # Call genetic algorithm for best attributes search
+                ga = FightGA(monster)
+                ga.main()
+
+                # Set best attributes to player before real fight
+                best_attributes = ga.bestAttributes
+                self.player.set_attributes(best_attributes)
+
                 if monster.fight(self.player):
                     self.maze.monsterList.remove(monster)
                     self.score += 50
