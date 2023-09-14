@@ -106,12 +106,12 @@ class App:
 
         if instruction == K_SPACE:
             env = self.maze.look_at_door(self.player, self._display_surf)
-            self.enigma_solver.__set_enigma_state__(env)
+            self.enigma_solver.set_enigma_state(env)
             # returns the state of the doors you can currently see
             # you need to unlock it by providing the correct key
 
         if instruction == K_u:
-            self.maze.unlock_door(self.enigma_solver.__solve_enigma__())
+            self.maze.unlock_door(self.enigma_solver.solve_enigma())
             # returns true if the door is unlocked, false if the answer is incorrect and the door remains locked
              # if the door is unlocked you can pass through it (no visible change... yet)
 
@@ -234,6 +234,11 @@ class App:
             perception_list = self.maze.make_perception_list(self.player, self._display_surf)
             self._obstacle_avoidance.set_perception_list(perception_list)
             self._tile_navigation.step()
+            
+            doors = perception_list[4]
+            if len(doors):
+                self.on_AI_input(K_SPACE)
+                self.on_AI_input(K_u)
             
             # self.on_AI_input(instruction)
             if self.on_coin_collision():
