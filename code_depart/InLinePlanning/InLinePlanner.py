@@ -2,6 +2,7 @@ from InLinePlanning.AStar import AStar
 from InLinePlanning.BlockOnMap import BlockOnMap
 
 
+
 class InLinePlanner:
     def __init__(self, maze, allowed_deviation):
         self.maze = maze
@@ -40,7 +41,6 @@ class InLinePlanner:
                 start_block = block
             elif block.value == 'E':
                 end_block = block
-
         if start_block and end_block:
             astar = AStar(blocks_on_map)
             path = astar.astar(start_block, end_block)
@@ -97,7 +97,7 @@ class InLinePlanner:
                     self.path.append(self.path_temp)
 
         self.path = [self.path[i] for i in range(len(self.path)) if i == 0 or self.path[i] != self.path[i - 1]]
-
+        self.path[0].append(self.path[0][len(self.path[0])-1].parent)
         return self.path
 
 
