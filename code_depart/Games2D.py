@@ -6,7 +6,7 @@ from Constants import *
 from InLinePlanning.InLinePlanner import *
 from Prolog.EnigmaSolver import *
 from TileNavigation import TileNavigation
-
+from ObstacleAvoidance import ObstacleAvoidance
 
 class App:
     windowWidth = WIDTH
@@ -47,7 +47,7 @@ class App:
         self._image_surf = pygame.transform.scale(self._image_surf, self.player.get_size())
         self.enigma_solver = EnigmaSolver()
         self.in_line_planner = InLinePlanner(self.maze, 0)
-        self.fuzzy_logic = FuzzyLogic(self.player, self.maze.tile_size_x, self.maze.tile_size_y)
+        #self.fuzzy_logic = FuzzyLogic(self.player, self.maze.tile_size_x, self.maze.tile_size_y)
 
     def on_keyboard_input(self, keys):
         if keys[K_RIGHT] or keys[K_d]:
@@ -218,8 +218,9 @@ class App:
         self.on_init()
         # get the matrix of the maze
         path = self.in_line_planner.__in_line_planning__()
+        self._tile_navigation.set_path([[block_node.block_on_map.x, block_node.block_on_map.y] for block_node in reversed(path)])
         while self._running:
-            instructions =  self.fuzzy_logic.prepareInputs(self.maze.make_perception_list(self.player, self._display_surf))
+            #instructions =  self.fuzzy_logic.prepareInputs(self.maze.make_perception_list(self.player, self._display_surf))
             self._clock.tick(GAME_CLOCK)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
