@@ -3,61 +3,28 @@ from swiplserver import PrologMQI
 
 class EnigmaSolver:
     def __init__(self):
-        self.env = None
-        self.number_of_cristals = None
-        self.lock_color = None
-        self.crystals = []
-        self.three_crystals_prolog_kb = "consult('Prolog/3Crystals.pl')."
-        self.four_crystals_prolog_kb = "consult('Prolog/4Crystals.pl')."
-        self.five_crystals_prolog_kb = "consult('Prolog/5Crystals.pl')."
-        self.six_crystals_prolog_kb = "consult('Prolog/6Crystals.pl')."
-        self.keys_numericals = {}
-        self.keys_numericals[1] = "first"
-        self.keys_numericals[2] = "second"
-        self.keys_numericals[3] = "third"
-        self.keys_numericals[4] = "fourth"
-        self.keys_numericals[5] = "five"
-        self.keys_numericals[6] = "sixth"
+        self._env = None
+        self._crystals_prolog_kb = ""
 
-    def __set_enigma_state__(self, door_state):
-        if len(door_state) != 0:
-            self.env = door_state
-            self.lock_color = door_state[0][0]
-            i = 0
-            self.crystals = []
-            for crystals in door_state[0]:
-                if i != 0 and crystals != '':
-                    self.crystals.append(crystals)
-                i = i + 1
-            self.number_of_cristals = len(self.crystals)
+    def set_enigma_state(self, door_state):
+        self._env = door_state
+        crystals = []
+        for crystal in self._env[0][1:]:
+            if crystal != '':
+                crystals.append(crystal)
+        self._crystals_prolog_kb = "consult('Prolog/{num_crystals}Crystals.pl').".format(num_crystals=len(crystals))
 
-    def __solve_enigma__(self):
-
+    def solve_enigma(self):
         with PrologMQI() as mqi:
             with mqi.create_thread() as prolog_thread:
-                if self.number_of_cristals == 3:
-                    prolog_thread.query(self.three_crystals_prolog_kb)
-                if self.number_of_cristals == 4:
-                    prolog_thread.query(self.four_crystals_prolog_kb)
-                if self.number_of_cristals == 5:
-                    prolog_thread.query(self.five_crystals_prolog_kb)
-                if self.number_of_cristals == 6:
-                    prolog_thread.query(self.six_crystals_prolog_kb)
-
-                env_str = "[" + self.lock_color + ","
-                i = 0
-                for elem in self.crystals:
-                    if i != (len(self.crystals) - 1):
-                        env_str = env_str + elem + ","
-                    else:
-                        env_str = env_str + elem
-                    i = i + 1
-                env_str = env_str + "]"
-                result = prolog_thread.query("obtainKey(" + env_str + ", Res" + ").")
+                prolog_thread.query(self._crystals_prolog_kb)
+                door_env = "[{env_value}]".format(env_value=",".join(self._env[0]))
+                result = prolog_thread.query("obtainKey({env}, Res" + ").".format(env=door_env))
 
         if isinstance(result[0]["Res"], list):
-            key_numerical = result[0]["Res"][len(result[0]["Res"]) - 1]
-            key = self.keys_numericals[key_numerical]
+            key_numerical = result[0]["Res"][-1]
+            key_numerical_strs = ["first","second","third","fourth","five","sixth"]
+            key = key_numerical_strs[key_numerical - 1]
         else:
             key = result[0]["Res"]
         return key

@@ -5,8 +5,9 @@ from Maze import *
 from Constants import *
 from InLinePlanning.InLinePlanner import *
 from Prolog.EnigmaSolver import *
-from FuzzyLogic.FuzzyLogic import *
-
+from TileNavigation import TileNavigation
+from ObstacleAvoidance import ObstacleAvoidance
+from FightGA import *
 
 class App:
     windowWidth = WIDTH
@@ -25,6 +26,12 @@ class App:
         self.timer = 0.0
         self.player = Player()
         self.maze = Maze(mazefile)
+        self._obstacle_avoidance = ObstacleAvoidance(self.player)
+        self._tile_navigation = TileNavigation(self.player, 
+                                        [self.maze.tile_size_x, 
+                                         self.maze.tile_size_y], 
+                                        self._obstacle_avoidance, 
+                                        self.on_AI_input)
 
     def on_init(self):
         pygame.init()
@@ -41,7 +48,7 @@ class App:
         self._image_surf = pygame.transform.scale(self._image_surf, self.player.get_size())
         self.enigma_solver = EnigmaSolver()
         self.in_line_planner = InLinePlanner(self.maze, 0)
-        self.fuzzy_logic = FuzzyLogic(self.player, self.maze.tile_size_x, self.maze.tile_size_y)
+        #self.fuzzy_logic = FuzzyLogic(self.player, self.maze.tile_size_x, self.maze.tile_size_y)
 
     def on_keyboard_input(self, keys):
         if keys[K_RIGHT] or keys[K_d]:
@@ -85,30 +92,29 @@ class App:
             self._running = False
 
     # FONCTION À Ajuster selon votre format d'instruction
-    def on_AI_input(self, instructions):
-        for instruction in instructions:
-            if instruction == K_RIGHT:
-                self.move_player_right()
+    def on_AI_input(self, instruction):
+        if instruction == K_RIGHT:
+            self.move_player_right()
 
-            if instruction == K_LEFT:
-                self.move_player_left()
+        if instruction == K_LEFT:
+            self.move_player_left()
 
-            if instruction == K_UP:
-                self.move_player_up()
+        if instruction == K_UP:
+            self.move_player_up()
 
-            if instruction == K_DOWN:
-                self.move_player_down()
+        if instruction == K_DOWN:
+            self.move_player_down()
 
-            if instruction == K_SPACE:
-                env = self.maze.look_at_door(self.player, self._display_surf)
-                self.enigma_solver.__set_enigma_state__(env)
-                # returns the state of the doors you can currently see
-                # you need to unlock it by providing the correct key
+        if instruction == K_SPACE:
+            env = self.maze.look_at_door(self.player, self._display_surf)
+            self.enigma_solver.set_enigma_state(env)
+            # returns the state of the doors you can currently see
+            # you need to unlock it by providing the correct key
 
-            if instruction == K_u:
-                self.maze.unlock_door(self.enigma_solver.__solve_enigma__())
-                # returns true if the door is unlocked, false if the answer is incorrect and the door remains locked
-                # if the door is unlocked you can pass through it (no visible change... yet)
+        if instruction == K_u:
+            self.maze.unlock_door(self.enigma_solver.solve_enigma())
+            # returns true if the door is unlocked, false if the answer is incorrect and the door remains locked
+             # if the door is unlocked you can pass through it (no visible change... yet)
 
     def on_collision(self):
         return self.on_wall_collision() or self.on_obstacle_collision() or self.on_door_collision()
@@ -213,12 +219,9 @@ class App:
         self.on_init()
         # get the matrix of the maze
         path = self.in_line_planner.__in_line_planning__()
-        current = path[len(path)-1]
-        next_tile = path[len(path)-2]
-        self.fuzzy_logic.set_path(path)
-        self.fuzzy_logic.set_original_coord(current,next_tile)
+        self._tile_navigation.set_path([[block_node.block_on_map.x, block_node.block_on_map.y] for block_node in reversed(path)])
         while self._running:
-            instructions =  self.fuzzy_logic.prepareInputs(self.maze.make_perception_list(self.player, self._display_surf))
+            #instructions =  self.fuzzy_logic.prepareInputs(self.maze.make_perception_list(self.player, self._display_surf))
             self._clock.tick(GAME_CLOCK)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -227,15 +230,33 @@ class App:
                     self.timer += 0.01
             pygame.event.pump()
             keys = pygame.key.get_pressed()
-            #self.on_keyboard_input(keys)
-            self.player.get_position()
-            self.on_AI_input(instructions)
+            self.on_keyboard_input(keys)
+            
+            perception_list = self.maze.make_perception_list(self.player, self._display_surf)
+            self._obstacle_avoidance.set_perception_list(perception_list)
+            self._tile_navigation.step()
+            
+            doors = perception_list[4]
+            if len(doors):
+                self.on_AI_input(K_SPACE)
+                self.on_AI_input(K_u)
+            
+            # self.on_AI_input(instruction)
             if self.on_coin_collision():
                 self.score += 1
             if self.on_treasure_collision():
                 self.score += 10
             monster = self.on_monster_collision()
             if monster:
+
+                # Call genetic algorithm for best attributes search
+                ga = FightGA(monster)
+                ga.main()
+
+                # Set best attributes to player before real fight
+                best_attributes = ga.bestAttributes
+                self.player.set_attributes(best_attributes)
+
                 if monster.fight(self.player):
                     self.maze.monsterList.remove(monster)
                     self.score += 50
