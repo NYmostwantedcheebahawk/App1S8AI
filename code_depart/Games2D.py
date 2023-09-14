@@ -9,6 +9,7 @@ from Constants import *
 from BlockOnMap import *
 from AStar import *
 from Prolog.EgnimaSolver import *
+from TileNavigation import TileNavigation
 
 
 class App:
@@ -29,6 +30,11 @@ class App:
         self.player = Player()
         self.maze = Maze(mazefile)
         self._obstacle_avoidance = ObstacleAvoidance(self.player)
+        self._tile_navigation = TileNavigation(self.player, 
+                                        [self.maze.tile_size_x, 
+                                         self.maze.tile_size_y], 
+                                        self._obstacle_avoidance, 
+                                        self.on_AI_input)
 
     def on_init(self):
         pygame.init()
@@ -52,9 +58,6 @@ class App:
         self.on_side_path = False
 
     def on_keyboard_input(self, keys):
-        perception_list = self.maze.make_perception_list(self.player, self._display_surf)
-        self._obstacle_avoidance.set_perception_list(perception_list)
-
         obstacle_avoidance_keys = []
         if keys[K_RIGHT] or keys[K_d]:
             obstacle_avoidance_keys = self._obstacle_avoidance.get_keypress(K_RIGHT)
@@ -64,16 +67,6 @@ class App:
             obstacle_avoidance_keys = self._obstacle_avoidance.get_keypress(K_UP)
         elif keys[K_DOWN] or keys[K_s]:
             obstacle_avoidance_keys = self._obstacle_avoidance.get_keypress(K_DOWN)
-
-        for avoidance_key in obstacle_avoidance_keys:
-            if (avoidance_key == K_RIGHT):
-                self.move_player_right()
-            if (avoidance_key == K_LEFT):
-                self.move_player_left()
-            if (avoidance_key == K_UP):
-                self.move_player_up()
-            if (avoidance_key == K_DOWN):
-                self.move_player_down()
 
         # Utility functions for AI
         if keys[K_p]:
@@ -105,16 +98,16 @@ class App:
 
     # FONCTION À Ajuster selon votre format d'instruction
     def on_AI_input(self, instruction):
-        if instruction == 'RIGHT':
+        if instruction == K_RIGHT:
             self.move_player_right()
 
-        if instruction == 'LEFT':
+        if instruction == K_LEFT:
             self.move_player_left()
 
-        if instruction == 'UP':
+        if instruction == K_UP:
             self.move_player_up()
 
-        if instruction == 'DOWN':
+        if instruction == K_DOWN:
             self.move_player_down()
 
     def on_collision(self):
@@ -216,91 +209,10 @@ class App:
     def on_cleanup(self):
         pygame.quit()
 
-    def define_coordinates_value_heuristics(self, maze_matrix):
-        end_x, end_y = None, None
-        for y, row in enumerate(maze_matrix):
-            for x, value in enumerate(row):
-                if value == 'E':
-                    end_x, end_y = x, y
-                    break
-
-        # Initialize BlockOnMap objects and calculate heuristics
-        block_objects = []
-        if end_x is not None and end_y is not None:
-            for y, row in enumerate(maze_matrix):
-                for x, value in enumerate(row):
-                    if value != '1':
-                        heuristic = abs(x - end_x) + abs(y - end_y)
-                        block = BlockOnMap(x, y, value, heuristic)
-                        block_objects.append(block)
-        return block_objects
-
     def on_execute(self):
         self.on_init()
         # get the matrix of the maze
-        blocks_on_map = self.define_coordinates_value_heuristics(self.maze.maze)
-        start_block = None
-        end_block = None
-        for block in blocks_on_map:
-            if block.value == 'S':
-                start_block = block
-            elif block.value == 'E':
-                end_block = block
 
-        if start_block and end_block:
-            astar = AStar(blocks_on_map)
-            path = astar.astar(start_block, end_block)
-        self.path = []
-        current_path = path
-        while current_path.parent != None:
-            self.path.append(current_path)
-            current_path = current_path.parent
-        self.path.append(current_path)
-
-        print(len(self.path))
-        while len(self.path) > 0:
-            current_node = self.path.pop()
-            print(str(current_node.block_on_map.x) + str(current_node.block_on_map.y) )
-            if (len(self.path)  == 0 and self.on_side_path) or not self.on_side_path:
-                costs = []
-                possible_paths = []
-                for block in blocks_on_map:
-                    if block.value in self.values and not (block in self.visited):
-                        if current_node and block:
-                            astar = AStar(blocks_on_map)
-                            path = astar.astar(current_node.block_on_map, block)
-                            possible_paths.append(path)
-                            costs.append(path.f_value)
-                if len(costs) > 0 and  min(costs) < self.allowed_deviation:
-                    min_index = costs.index(min(costs))
-                    self.on_side_path = True
-                    self.path = possible_paths[min_index]
-                    current_path = path
-                    self.visited.append(path.block_on_map)
-                    self.path = []
-                    while current_path.parent != None:
-                        self.path.append(current_path)
-                        current_path = current_path.parent
-                    self.path.append(current_path)
-                elif self.on_side_path:
-                    self.on_side_path = False
-                    for block in blocks_on_map:
-                        if block == current_node.block_on_map:
-                            start_block = block
-                        elif block.value == 'E':
-                            end_block = block
-
-                    if start_block and end_block:
-                        astar = AStar(blocks_on_map)
-                        path = astar.astar(start_block, end_block)
-                    self.path = []
-                    current_path = path
-                    while current_path.parent != None:
-                        self.path.append(current_path)
-                        current_path = current_path.parent
-                    self.path.append(current_path)
-        for vis in self.visited:
-            print(str(vis.x) + str(vis.y))
         while self._running:
             self._clock.tick(GAME_CLOCK)
             for event in pygame.event.get():
@@ -311,6 +223,11 @@ class App:
             pygame.event.pump()
             keys = pygame.key.get_pressed()
             self.on_keyboard_input(keys)
+            
+            perception_list = self.maze.make_perception_list(self.player, self._display_surf)
+            self._obstacle_avoidance.set_perception_list(perception_list)
+            self._tile_navigation.step()
+            
             # self.on_AI_input(instruction)
             if self.on_coin_collision():
                 self.score += 1
