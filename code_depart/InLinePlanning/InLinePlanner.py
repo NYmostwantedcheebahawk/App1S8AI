@@ -1,6 +1,6 @@
 from InLinePlanning.AStar import AStar
 from InLinePlanning.BlockOnMap import BlockOnMap
-
+import copy
 
 
 class InLinePlanner:
@@ -50,7 +50,8 @@ class InLinePlanner:
             self.path_temp.append(current_path)
             current_path = current_path.parent
         self.path_temp.append(current_path)
-        self.path.append(self.path_temp)
+        toadd = copy.deepcopy(self.path_temp)
+        self.path.append(toadd)
         #print(len(self.path_temp))
         while len(self.path_temp) > 0:
             current_node = self.path_temp.pop()
@@ -76,7 +77,8 @@ class InLinePlanner:
                         self.path_temp.append(current_path)
                         current_path = current_path.parent
                     self.path_temp.append(current_path)
-                    self.path.append(self.path_temp)
+                    toadd = copy.deepcopy(self.path_temp)
+                    self.path.append(toadd)
                 elif self.on_side_path:
                     self.on_side_path = False
                     for block in blocks_on_map:
@@ -94,10 +96,14 @@ class InLinePlanner:
                         self.path_temp.append(current_path)
                         current_path = current_path.parent
                     self.path_temp.append(current_path)
-                    self.path.append(self.path_temp)
+                    toadd = copy.deepcopy(self.path_temp)
+                    self.path.append(toadd)
+        if len(self.path) > 1:
+            concatenated_list = [element for subarray in reversed(self.path[1:]) for element in subarray]
+        else:
+            concatenated_list = self.path[0]
+        self.path = [concatenated_list[i] for i in range(len(concatenated_list)) if i == 0 or concatenated_list[i] != concatenated_list[i - 1]]
 
-        self.path = [self.path[i] for i in range(len(self.path)) if i == 0 or self.path[i] != self.path[i - 1]]
-        self.path[0].append(self.path[0][len(self.path[0])-1].parent)
         return self.path
 
 

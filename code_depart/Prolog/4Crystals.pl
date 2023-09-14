@@ -25,7 +25,7 @@ find_all_indices(Element, List, Indices) :-
 
 condition1(Env) :- (findall(Red, (member(Red, Env), Red = red), Reds), count_items(Reds,N), N > 1),
 member(silver, Env).
-condition2(Env) :- (findall(Red, (member(Red, Env), Red = red), Reds), count_items(Reds,N), N = 0),(check_last_item(Env,yellow)).
+condition2(Env) :- \+ member(red,Env),(check_last_item(Env,yellow)).
 condition3(Env) :- (findall(Blue, (member(Blue, Env), Blue = blue), Blues), count_items(Blues,N), N = 1).
 condition4(Env) :- (findall(Yellow, (member(Yellow, Env), Yellow = yellow), Yellows), count_items(Yellows,N), N > 1).
 

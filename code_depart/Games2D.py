@@ -40,7 +40,7 @@ class App:
         self.player.set_size(PLAYER_SIZE*self.maze.tile_size_x, PLAYER_SIZE*self.maze.tile_size_x)
         self._image_surf = pygame.transform.scale(self._image_surf, self.player.get_size())
         self.enigma_solver = EnigmaSolver()
-        self.in_line_planner = InLinePlanner(self.maze, 40)
+        self.in_line_planner = InLinePlanner(self.maze, 0)
         self.fuzzy_logic = FuzzyLogic(self.player, self.maze.tile_size_x, self.maze.tile_size_y)
 
     def on_keyboard_input(self, keys):
@@ -98,6 +98,17 @@ class App:
 
             if instruction == K_DOWN:
                 self.move_player_down()
+
+            if instruction == K_SPACE:
+                env = self.maze.look_at_door(self.player, self._display_surf)
+                self.enigma_solver.__set_enigma_state__(env)
+                # returns the state of the doors you can currently see
+                # you need to unlock it by providing the correct key
+
+            if instruction == K_u:
+                self.maze.unlock_door(self.enigma_solver.__solve_enigma__())
+                # returns true if the door is unlocked, false if the answer is incorrect and the door remains locked
+                # if the door is unlocked you can pass through it (no visible change... yet)
 
     def on_collision(self):
         return self.on_wall_collision() or self.on_obstacle_collision() or self.on_door_collision()
@@ -201,9 +212,9 @@ class App:
     def on_execute(self):
         self.on_init()
         # get the matrix of the maze
-        path = self.in_line_planner.__in_line_planning__()[0]
-        current = path[len(path)-1].parent
-        next_tile = path[len(path)-1]
+        path = self.in_line_planner.__in_line_planning__()
+        current = path[len(path)-1]
+        next_tile = path[len(path)-2]
         self.fuzzy_logic.set_path(path)
         self.fuzzy_logic.set_original_coord(current,next_tile)
         while self._running:

@@ -76,17 +76,18 @@ class FuzzyLogic():
                                            consequent=cons1['Right']))
         rules.append(ctrl.Rule(antecedent=(rightWallAntecedent['goLeft'] & leftWallAntecedent['noMovement']),
                                            consequent=cons1['Left']))
-        rules.append(ctrl.Rule(antecedent=(rightWallAntecedent['noMovement'] and leftWallAntecedent['noMovement'] & playerDirection['Down']),
+        rules.append(ctrl.Rule(antecedent=(rightWallAntecedent['noMovement'] & leftWallAntecedent['noMovement']& topWallAntecedent['noMovement'] & bottomWallAntecedent['noMovement'] & playerDirection['Down']),
                                            consequent=cons1['Down']))
-        rules.append(ctrl.Rule(antecedent=(rightWallAntecedent['noMovement'] and leftWallAntecedent['noMovement'] & playerDirection['Right']),
-                                           consequent=cons1['Right']))
-        rules.append(ctrl.Rule(antecedent=(rightWallAntecedent['noMovement'] and leftWallAntecedent['noMovement'] & playerDirection['Left']),
-                                           consequent=cons1['Left']))
-
+        rules.append(ctrl.Rule(antecedent=(rightWallAntecedent['noMovement'] & leftWallAntecedent['noMovement'] & topWallAntecedent['noMovement'] & bottomWallAntecedent['noMovement'] & playerDirection['Up']),
+                               consequent=cons1['Up']))
         rules.append(ctrl.Rule(antecedent=(topWallAntecedent['goDown'] & bottomWallAntecedent['noMovement']),
                                            consequent=cons1['Down']))
         rules.append(ctrl.Rule(antecedent=(bottomWallAntecedent['goUp'] & topWallAntecedent['noMovement']),
                                            consequent=cons1['Up']))
+        rules.append(ctrl.Rule(antecedent=(topWallAntecedent['noMovement'] & bottomWallAntecedent['noMovement'] & rightWallAntecedent['noMovement'] & leftWallAntecedent['noMovement'] & playerDirection['Right']),
+                                            consequent=cons1['Right']))
+        rules.append(ctrl.Rule(antecedent=(bottomWallAntecedent['noMovement'] & topWallAntecedent['noMovement'] & rightWallAntecedent['noMovement'] & leftWallAntecedent['noMovement'] & playerDirection['Left']),
+                                            consequent=cons1['Left']))
 
         # Conjunction (and_func) and disjunction (or_func) methods for rules:
         #     np.fmin
@@ -101,7 +102,7 @@ class FuzzyLogic():
 
 
     def set_path(self, path):
-        self.next_in_path = len(path)-2
+        self.next_in_path = len(path)-3
         self.path = copy.deepcopy(path)
         print(len(path))
     def set_original_coord(self, tile1, tile2):
@@ -159,13 +160,13 @@ class FuzzyLogic():
 
     def convertAngleOutputToKeyStroke(self, output ,target_direction):
         key_stroke = []
-        if output > np.pi/2 and output < np.pi:
+        if output > np.pi/2.2 and output < np.pi/1.3:
             key_stroke.append(K_DOWN)
-        if output > -np.pi  and output < -np.pi/2 :
+        if output > -np.pi/2.2  and output < -np.pi/1.8 :
             key_stroke.append(K_UP)
-        if output > (np.pi/1.5) and output < np.pi:
+        if output > (np.pi/1.2) and output < np.pi:
             key_stroke.append(K_LEFT)
-        if output > 0 and output < np.pi/2.1:
+        if output > 0 and output < np.pi/2.3:
             key_stroke.append(K_RIGHT)
         return key_stroke
 
@@ -223,6 +224,9 @@ class FuzzyLogic():
         #self.fuzzyController.input['rockInput'] = angleWithPlayerFromDirection
 
         self.fuzzyController.compute()
-        return self.convertAngleOutputToKeyStroke(self.fuzzyController.output['output1'], general_direction)
+        if len(self.obstacle_avoidance._door_list) > 0:
+            return [K_SPACE, K_u]
+        else:
+            return self.convertAngleOutputToKeyStroke(self.fuzzyController.output['output1'], general_direction)
 
 

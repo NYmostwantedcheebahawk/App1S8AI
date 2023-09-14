@@ -25,7 +25,7 @@ class Door:
 
     def __init__(self, rect):
         self.rect = rect
-        i = random.randrange(0, 10)
+        i = 9
         self.state = self.STATES[i]
         self.key = self.KEYS[i]
 
