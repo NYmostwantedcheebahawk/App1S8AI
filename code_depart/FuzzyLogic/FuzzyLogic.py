@@ -30,10 +30,11 @@ class FuzzyLogic():
         #    'som'     : min of maximum
         #    'lom'     : max of maximum
         playerDirection = ctrl.Antecedent(np.linspace(0, np.pi, 1000), 'directionInput')
-        leftWallAntecedent = ctrl.Antecedent(np.linspace(0, self.width, 1000), 'leftWallInput')
-        rightWallAntecedent = ctrl.Antecedent(np.linspace(0, self.width, 1000), 'rightWallInput')
-        topWallAntecedent = ctrl.Antecedent(np.linspace(0, self.height, 1000), 'topWallInput')
-        bottomWallAntecedent = ctrl.Antecedent(np.linspace(0, self.height, 1000), 'bottomWallInput')
+        leftWallAntecedent = ctrl.Antecedent(np.linspace(0, 60, 1000), 'leftWallInput')
+        rightWallAntecedent = ctrl.Antecedent(np.linspace(0, 60, 1000), 'rightWallInput')
+        topWallAntecedent = ctrl.Antecedent(np.linspace(0, 60, 1000), 'topWallInput')
+        bottomWallAntecedent = ctrl.Antecedent(np.linspace(0, 60, 1000), 'bottomWallInput')
+        rockAntecedent = ctrl.Antecedent(np.linspace(-np.pi/2, np.pi/2, 1000), 'rockInput')
 
         # ant1 = ctrl.Antecedent(np.linspace(-1, 1, 1000), 'input1')
         # ant2 = ctrl.Antecedent(np.linspace(-1, 1, 1000), 'input2')
@@ -45,44 +46,48 @@ class FuzzyLogic():
         cons1.accumulation_method = np.fmax
 
         # TODO: Create membership functions
-        playerDirection['Up'] = fuzz.trimf(cons1.universe, [0, np.pi/2 , np.pi])
+        playerDirection['Up'] = fuzz.trimf(cons1.universe, [-np.pi, -np.pi/2 , 0])
+        playerDirection['Down'] = fuzz.trimf(cons1.universe, [0, np.pi/2 , np.pi])
         playerDirection['Right'] = fuzz.trimf(cons1.universe, [0,0,np.pi])
         playerDirection['Left'] = fuzz.trimf(cons1.universe, [0,np.pi,np.pi])
 
-        leftWallAntecedent['goRight'] = fuzz.trimf(leftWallAntecedent.universe, [0, 0, (self.width /2)])
-        leftWallAntecedent['noMovement'] = fuzz.trimf(leftWallAntecedent.universe,[(self.width /2), self.width , self.width ])
-        rightWallAntecedent['goLeft'] = fuzz.trimf(rightWallAntecedent.universe, [0, 0, (self.width /2)])
-        rightWallAntecedent['noMovement'] = fuzz.trimf(rightWallAntecedent.universe, [(self.width /2), self.width , self.width ])
-        topWallAntecedent['goDown'] = fuzz.trimf(topWallAntecedent.universe, [0, 0, self.height/2])
-        topWallAntecedent['noMovement'] = fuzz.trimf(topWallAntecedent.universe, [self.height/2, self.height, self.height])
-        bottomWallAntecedent['goUp'] = fuzz.trimf(bottomWallAntecedent.universe, [0, 0, self.height/2])
-        bottomWallAntecedent['noMovement'] = fuzz.trimf(bottomWallAntecedent.universe, [self.height/2, self.height, self.height])
+        leftWallAntecedent['goRight'] = fuzz.trimf(leftWallAntecedent.universe, [0, 0, 15])
+        leftWallAntecedent['noMovement'] = fuzz.trimf(leftWallAntecedent.universe,[11, 60, 60])
+        rightWallAntecedent['goLeft'] = fuzz.trimf(rightWallAntecedent.universe, [0, 0, 33])
+        rightWallAntecedent['noMovement'] = fuzz.trimf(rightWallAntecedent.universe, [29,60, 60])
+        topWallAntecedent['goDown'] = fuzz.trimf(topWallAntecedent.universe, [0, 0, 15])
+        topWallAntecedent['noMovement'] = fuzz.trimf(topWallAntecedent.universe, [11, 60, 60])
+        bottomWallAntecedent['goUp'] = fuzz.trimf(bottomWallAntecedent.universe, [0, 0, 33])
+        bottomWallAntecedent['noMovement'] = fuzz.trimf(bottomWallAntecedent.universe, [29,60, 60])
+        #rockAntecedent['onYourLeft'] = fuzz.trimf(rockAntecedent.universe, [-np.pi/2, -np.pi/2, -np.pi/15])
+        #rockAntecedent['straightAHead'] = fuzz.trimf(rockAntecedent.universe, [-np.pi/15, 0, np.pi/15])
+        #rockAntecedent['onYourRight'] = fuzz.trimf(rockAntecedent.universe, [np.pi/15, np.pi/2, np.pi/2])
 
-        cons1['Up'] = fuzz.trimf(cons1.universe, [0, np.pi/2, np.pi])
-        cons1['Right'] = fuzz.trimf(cons1.universe, [0,0,np.pi])
-        cons1['Left'] = fuzz.trimf(cons1.universe, [0,np.pi,np.pi])
+        cons1['Up'] = fuzz.trimf(cons1.universe, [-np.pi/1.8, -np.pi/2, -np.pi/2.2])
+        cons1['Down'] = fuzz.trimf(cons1.universe, [np.pi/2.2, np.pi/2, np.pi/1.8])
+        cons1['Right'] = fuzz.trimf(cons1.universe, [0,0,np.pi/2])
+        cons1['Left'] = fuzz.trimf(cons1.universe, [np.pi/2,np.pi,np.pi])
+
 
         # TODO: Define the rules.
         rules = []
 
-        rules.append(ctrl.Rule(antecedent=(leftWallAntecedent['goRight']),
-                               consequent=cons1['Right']))
-        rules.append(ctrl.Rule(antecedent=(leftWallAntecedent['noMovement'] & playerDirection['Up']),
-                               consequent=cons1['Up']))
-        rules.append(ctrl.Rule(antecedent=(rightWallAntecedent['goLeft']),
-                               consequent=cons1['Left']))
-        rules.append(ctrl.Rule(antecedent=(rightWallAntecedent['noMovement'] & playerDirection['Up']),
-                               consequent=cons1['Up']))
-        rules.append(ctrl.Rule(antecedent=(topWallAntecedent['noMovement'] & playerDirection['Right']),
-                               consequent=cons1['Right']))
-        rules.append(ctrl.Rule(antecedent=(topWallAntecedent['noMovement'] & playerDirection['Left']),
-                               consequent=cons1['Left']))
-        rules.append(ctrl.Rule(antecedent=(bottomWallAntecedent['goUp']),
-                               consequent=cons1['Up']))
-        rules.append(ctrl.Rule(antecedent=(bottomWallAntecedent['noMovement'] & playerDirection['Right']),
-                               consequent=cons1['Right']))
-        rules.append(ctrl.Rule(antecedent=(bottomWallAntecedent['noMovement'] & playerDirection['Left']),
-                               consequent=cons1['Left']))
+        rules.append(ctrl.Rule(antecedent=(leftWallAntecedent['goRight'] & rightWallAntecedent['noMovement']),
+                                           consequent=cons1['Right']))
+        rules.append(ctrl.Rule(antecedent=(rightWallAntecedent['goLeft'] & leftWallAntecedent['noMovement']),
+                                           consequent=cons1['Left']))
+        rules.append(ctrl.Rule(antecedent=(rightWallAntecedent['noMovement'] and leftWallAntecedent['noMovement'] & playerDirection['Down']),
+                                           consequent=cons1['Down']))
+        rules.append(ctrl.Rule(antecedent=(rightWallAntecedent['noMovement'] and leftWallAntecedent['noMovement'] & playerDirection['Right']),
+                                           consequent=cons1['Right']))
+        rules.append(ctrl.Rule(antecedent=(rightWallAntecedent['noMovement'] and leftWallAntecedent['noMovement'] & playerDirection['Left']),
+                                           consequent=cons1['Left']))
+
+        rules.append(ctrl.Rule(antecedent=(topWallAntecedent['goDown'] & bottomWallAntecedent['noMovement']),
+                                           consequent=cons1['Down']))
+        rules.append(ctrl.Rule(antecedent=(bottomWallAntecedent['goUp'] & topWallAntecedent['noMovement']),
+                                           consequent=cons1['Up']))
+
         # Conjunction (and_func) and disjunction (or_func) methods for rules:
         #     np.fmin
         #     np.fmax
@@ -132,7 +137,7 @@ class FuzzyLogic():
         direction_tuple, target_direction = self.convertTileDirectionToGeneralDirection()
         corridors_array = self.obstacle_avoidance._find_corridor(direction_tuple)
         obstacles = self.obstacle_avoidance._collisions_in_path(target_direction, True)
-        return self.processOutput(corridors_array[0], corridors_array[1], direction_tuple)
+        return self.processOutput(corridors_array[0], corridors_array[1], obstacles, direction_tuple)
 
     def convertTileDirectionToGeneralDirection(self):
         x1 = self.current_tile.block_on_map.x
@@ -154,26 +159,35 @@ class FuzzyLogic():
 
     def convertAngleOutputToKeyStroke(self, output ,target_direction):
         key_stroke = []
-        if output > 0 and output < np.pi:
-            if target_direction[0] == -1:
-                key_stroke.append(K_UP)
-            else:
-                key_stroke.append(K_DOWN)
-        if output > (np.pi/2) and output < 3*np.pi/2:
+        if output > np.pi/2 and output < np.pi:
+            key_stroke.append(K_DOWN)
+        if output > -np.pi  and output < -np.pi/2 :
+            key_stroke.append(K_UP)
+        if output > (np.pi/1.5) and output < np.pi:
             key_stroke.append(K_LEFT)
-        if output > -np.pi/2 and output < np.pi/2:
+        if output > 0 and output < np.pi/2.1:
             key_stroke.append(K_RIGHT)
         return key_stroke
 
-    def processOutput(self, wall1, wall2, general_direction):
-        if(wall1 == None):
-            distance_from_wall1 = 53
+    def processOutput(self, wall1, wall2, obstacles, general_direction):
+        if general_direction[1] == 1:
+            if(wall1 == None):
+                distance_from_wall1 = 53
+            else:
+                distance_from_wall1 = self.player.x - wall1
+            if(wall2 == None):
+                distance_from_wall2 = 53
+            else:
+                distance_from_wall2 = wall2 - self.player.x
         else:
-            distance_from_wall1 = self.player.x - wall1
-        if(wall2 == None):
-            distance_from_wall2 = 53
-        else:
-            distance_from_wall2 = wall2 - self.player.x
+            if(wall1 == None):
+                distance_from_wall1 = 60
+            else:
+                distance_from_wall1 = wall1 - self.player.y
+            if(wall2 == None):
+                distance_from_wall2 = 60
+            else:
+                distance_from_wall2 =  self.player.y - wall2
         x_angle = general_direction[0]
         y_angle = general_direction[1]
         if x_angle == 1:
@@ -183,7 +197,16 @@ class FuzzyLogic():
         elif y_angle == 1:
             target_direction = np.pi/2
         elif y_angle == -1:
-            target_direction = np.pi/2
+            target_direction = -np.pi/2
+
+        if len(obstacles) > 0:
+            coordinates = obstacles[0][1].center
+            if target_direction == np.pi/2:
+                angleWithPlayerFromDirection = math.tan((coordinates[0] - self.player.x)/ (coordinates[1] - self.player.y))
+            else:
+                angleWithPlayerFromDirection = math.tan((coordinates[1] - self.player.y) / (coordinates[0] - self.player.x))
+        else:
+                angleWithPlayerFromDirection = 0
 
         self.fuzzyController.input['directionInput'] = target_direction
         if (target_direction == np.pi/2 or target_direction == 3*np.pi/2):
@@ -192,10 +215,12 @@ class FuzzyLogic():
             self.fuzzyController.input['topWallInput'] = 60
             self.fuzzyController.input['bottomWallInput'] = 60
         if (target_direction == 0 or target_direction == np.pi):
-            self.fuzzyController.input['topWallInput'] = distance_from_wall1
-            self.fuzzyController.input['bottomWallInput'] = distance_from_wall2
-            self.fuzzyController.input['leftWallInput'] = 53
-            self.fuzzyController.input['rightWallInput'] = 53
+            self.fuzzyController.input['topWallInput'] = distance_from_wall2
+            self.fuzzyController.input['bottomWallInput'] = distance_from_wall1
+            self.fuzzyController.input['leftWallInput'] = 60
+            self.fuzzyController.input['rightWallInput'] = 60
+
+        #self.fuzzyController.input['rockInput'] = angleWithPlayerFromDirection
 
         self.fuzzyController.compute()
         return self.convertAngleOutputToKeyStroke(self.fuzzyController.output['output1'], general_direction)

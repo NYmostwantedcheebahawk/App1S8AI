@@ -95,8 +95,7 @@ class InLinePlanner:
                         current_path = current_path.parent
                     self.path_temp.append(current_path)
                     self.path.append(self.path_temp)
-        #for vis in self.visited:
-            #print(str(vis.x) + str(vis.y))
+
         self.path = [self.path[i] for i in range(len(self.path)) if i == 0 or self.path[i] != self.path[i - 1]]
 
         return self.path
