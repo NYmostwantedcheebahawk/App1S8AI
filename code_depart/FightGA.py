@@ -28,15 +28,13 @@ class FightGA:
     
     def pop_init(self):
         # Initialization of random attributes
-        for _ in range(self.pop_size):
-            chromosomes = [[random.randrange(-self.range_attributes, self.range_attributes) for _ in range(self.num_attributes)] for _ in range(self.pop_size)]
-            self.attributes_values = chromosomes
+        self.attributes_values = [[random.randrange(-self.range_attributes, self.range_attributes) for _ in range(self.num_attributes)] for _ in range(self.pop_size)]
         #print(f"attributes : {self.attributes_values}")
 
     def encode(self):
         # Encode population from attributes values
-        for j in range(self.pop_size):
-            binary_concatenated = ''.join(twos_complement(attribute, self.nbits) for attribute in self.attributes_values[j])
+        for attribute in self.attributes_values:
+            binary_concatenated = ''.join([twos_complement(gene, self.nbits) for gene in attribute])
             self.population.append(binary_concatenated)
         #print(f"population : {self.population}")
 
@@ -74,17 +72,14 @@ class FightGA:
             #fit_ratios = self.attributes_val_score
         
         # Select pairs
-        val_max = sum(fit_ratios)
-        selection_probs = [f/val_max for f in fit_ratios]
+        selection_probs = np.array(fit_ratios) / sum(fit_ratios)
         pairs = []
         for _ in range(self.pop_size // 2):
-            choosen = False
             parent1 = np.random.choice(len(fit_ratios), p=selection_probs)
-            while(not choosen):
-                parent2 = np.random.choice(len(fit_ratios), p=selection_probs)
-                if parent1 != parent2:
-                    choosen = True
-                    pairs.append((parent1, parent2))
+            second_sel_probs = np.delete(selection_probs, parent1)
+            second_sel_probs /= sum(second_sel_probs)
+            parent2 = np.random.choice(len(fit_ratios)-1, p=second_sel_probs)
+            pairs.append((parent1, parent2))
         #print(f"{pairs}")
         return pairs
 
@@ -96,7 +91,7 @@ class FightGA:
             sequence1 = list(self.population[pairs[i][0]])
             sequence2 = list(self.population[pairs[i][1]])
             if random.random() < self.crossover_prob: # do crossover for every attributes
-                cross_point = random.randint(1, self.num_attributes) * self.nbits
+                cross_point = random.randint(1, self.num_attributes - 1) * self.nbits
                 #cross_point = self.crossover_cutting_point
                 new_seq1 = sequence1[:cross_point] + sequence2[cross_point:]
                 new_seq2 = sequence2[:cross_point] + sequence1[cross_point:]
@@ -142,18 +137,14 @@ class FightGA:
 
         while(self.current_gen < 1500):
             # Mock fights for every attributes in list
-            i = 0
             val_results = []
             rounds_won = []
-            while(i < self.pop_size):
-                att = self.attributes_values[i]
-                
+            for att in self.attributes_values:
                 player.set_attributes(att)
                 n, v = self.do_test_fight(player)
                 val_results.append(v)
                 rounds_won.append(n)
-                self.set_attributes_score(val_results, rounds_won)
-                i += 1
+            self.set_attributes_score(val_results, rounds_won)
             
             best_score = np.max(val_results)
             if best_score > self.bestAttributesFitness[1]:
