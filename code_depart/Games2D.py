@@ -47,7 +47,7 @@ class App:
         self.player.set_size(PLAYER_SIZE*self.maze.tile_size_x, PLAYER_SIZE*self.maze.tile_size_x)
         self._image_surf = pygame.transform.scale(self._image_surf, self.player.get_size())
         self.enigma_solver = EnigmaSolver()
-        self.in_line_planner = InLinePlanner(self.maze, 0)
+        self.in_line_planner = InLinePlanner(self.maze, 10)
         #self.fuzzy_logic = FuzzyLogic(self.player, self.maze.tile_size_x, self.maze.tile_size_y)
 
     def on_keyboard_input(self, keys):

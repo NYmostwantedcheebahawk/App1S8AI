@@ -100,7 +100,8 @@ class InLinePlanner:
                     self.path_temp.append(current_path)
                     toadd = copy.deepcopy(self.path_temp)
                     self.path.append(toadd)
-        print(self.visited)
+        for visited in self.visited:
+            print("X:" + str(visited.x) + "Y:" + str(visited.y) + "Value:" + str(visited.value))
         if len(self.path) > 1:
             concatenated_list = [element for subarray in reversed(self.path[1:]) for element in subarray]
         else:
