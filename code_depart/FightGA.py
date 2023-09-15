@@ -21,8 +21,8 @@ class FightGA:
 
         # Hyperparameters
         self.mutation_prob = 0.01
-        self.crossover_prob = 0.7
-        self.rw_coef = 2
+        self.crossover_prob = 0.8
+        self.rw_coef = 3
         self.pop_size = 850
         self.crossover_cutting_point = 5
         self.nbits = 11
@@ -138,41 +138,55 @@ class FightGA:
         self.pop_init()
         self.encode()
 
-        while(self.current_gen < 1000):
-            # Mock fights for every attributes in list
-            val_results = []
-            rounds_won = []
-            for att in self.attributes_values:
+        while(self.current_gen < 500):
+            val_results = np.zeros(self.pop_size)
+            rounds_won = np.zeros(self.pop_size)
+            for i, att in enumerate(self.attributes_values):
                 player.set_attributes(att)
                 n, v = self.do_test_fight(player)
-                val_results.append(v)
-                rounds_won.append(n)
-            self.set_attributes_score(val_results, rounds_won)
-            
-            best_score = np.max(val_results)
-            best_score_index = val_results.index(best_score)
-            best_rw = rounds_won[best_score_index]
-            if best_score > self.bestAttributesFitness[1]:
-                best_score_index = val_results.index(best_score)
-                best_run_atts = self.attributes_values[best_score_index]
-                best_rw = rounds_won[best_score_index]
-                self.bestAttributes = best_run_atts
+                val_results[i] = v
+                rounds_won[i] = n
+            self.set_attributes_score(list(val_results), list(rounds_won))
+
+            # If any mock fight returns 4 rounds won, stop search and return attributes
+            if np.any(rounds_won == 4):
+                index = int(np.where(rounds_won == 4)[0])
+                best_rw = rounds_won[index]
+                best_val = val_results[index]
+                best_atts = self.attributes_values[index]
+                self.bestAttributes = list(best_atts)
                 self.bestAttributesFitness = (best_rw, best_score)
+                self.fitness_ndata.append(best_rw)
+                self.fitness_vdata.append(best_val)
                 print(f"[New best] Gen_{self.current_gen} Fitness_{self.bestAttributesFitness}")
+                print(f"Threshold reached in {time.time() - start_time} s")
+                self.save_graph()
+                return 0
+            else:
+                val_results = list(val_results)
+                rounds_won = list(rounds_won)
+                best_score = np.max(val_results)
+                best_score_index = val_results.index(best_score)
+                best_rw = rounds_won[best_score_index]
             
+                if best_score > self.bestAttributesFitness[1]:
+                    best_score_index = val_results.index(best_score)
+                    best_run_atts = self.attributes_values[best_score_index]
+                    best_rw = rounds_won[best_score_index]
+                    self.bestAttributes = best_run_atts
+                    self.bestAttributesFitness = (best_rw, best_score)
+                    print(f"[New best] Gen_{self.current_gen} Fitness_{self.bestAttributesFitness}")
+            
+            # Append data for graph generation
             self.fitness_ndata.append(best_rw)
             self.fitness_vdata.append(best_score)
-
-            if (self.bestAttributesFitness[0] == 4) and (self.bestAttributesFitness[1] >= 3.70):
-                print(f"Threshold reached in {time.time() - start_time} s")
-                #self.save_graph()
-                return 0
             
+            # Generate new gen and decode binary
             self.new_gen()
             self.decode()
 
         print(f"Max gen reached. Time it took : {time.time() - start_time} s")
-        #self.save_graph()
+        self.save_graph()
         return 0
     
     def save_graph(self):
@@ -198,6 +212,8 @@ class FightGA:
         plt.title('Performance algo. génétique')
 
         path = 'MonsterGraphs/'
+        if not os.path.exists(path):
+            os.makedirs(path)
         contenu = os.listdir(path)
         nb_file = len([f for f in contenu if os.path.isfile(os.path.join(path, f))])
         plt.savefig(path + 'graph-' + f'{nb_file}.png')
