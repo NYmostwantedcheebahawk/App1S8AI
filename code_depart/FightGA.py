@@ -1,7 +1,10 @@
 # Class of the genetic algorithm for fighting the monster.
+import os
+import time
 import numpy as np
 import random
 from Constants import *
+import matplotlib.pyplot as plt
 
 class TestPlayer:
     def __init__(self) -> None:
@@ -12,39 +15,43 @@ class TestPlayer:
 
 class FightGA:
     def __init__(self, monster):
+        # Constants
         self.num_attributes = NUM_ATTRIBUTES
         self.range_attributes = MAX_ATTRIBUTE
+
+        # Hyperparameters
         self.mutation_prob = 0.01
-        self.crossover_prob = 0.8
-        self.crossover_cutting_point = 43
-        self.pop_size = 1500
+        self.crossover_prob = 0.7
+        self.rw_coef = 2
+        self.pop_size = 850
+        self.crossover_cutting_point = 5
         self.nbits = 11
+        
+        # Monster object
+        self.monster = monster
+        
+        # Init
         self.bestAttributes = []
         self.bestAttributesFitness = (0, -100)
         self.current_gen = 0
-
-        self.monster = monster
         self.population = []
+        self.fitness_vdata = []
+        self.fitness_ndata = []
     
     def pop_init(self):
         # Initialization of random attributes
         self.attributes_values = [[random.randrange(-self.range_attributes, self.range_attributes) for _ in range(self.num_attributes)] for _ in range(self.pop_size)]
-        #print(f"attributes : {self.attributes_values}")
 
     def encode(self):
-        # Encode population from attributes values
-        for attribute in self.attributes_values:
-            binary_concatenated = ''.join([twos_complement(gene, self.nbits) for gene in attribute])
-            self.population.append(binary_concatenated)
-        #print(f"population : {self.population}")
+        # Encode population to binary from attributes values
+        for individual in self.attributes_values:
+            self.population.append([twos_complement(attribute, self.nbits) for attribute in individual])
 
     def decode(self):
         # Decode new population from binary to signed integers
         for j in range(self.pop_size):
-            binary_concatenated = self.population[j]
-            binary_substrings = [binary_concatenated[i:i+self.nbits] for i in range(0, len(binary_concatenated), self.nbits)]
-            self.attributes_values[j] = [twos_complement_decode(substring) for substring in binary_substrings]
-        #print(f"attributes : {self.attributes_values}")
+            binary_attributes = self.population[j]
+            self.attributes_values[j] = [twos_complement_decode(attribute) for attribute in binary_attributes]
 
     def do_test_fight(self, player):
         nb, val = self.monster.mock_fight(player)
@@ -63,13 +70,11 @@ class FightGA:
     def doSelection(self):
         # Select pairs of individuals from the population
         # Do manipulation on score values
-        round_won_coef = [item for item in self.attributes_rounds_won]
-        #print(f"{self.attributes_rounds_won}, {round_won_coef}")
+        round_won_coef = [item * self.rw_coef for item in self.attributes_rounds_won]
         if any(value < 0 for value in self.attributes_val_score):
             fit_ratios = self.attributes_val_score + abs(min(self.attributes_val_score)) + 1 + round_won_coef
         else:
             fit_ratios = [self.attributes_val_score[i] + round_won_coef[i] for i in range(len(self.attributes_val_score))]
-            #fit_ratios = self.attributes_val_score
         
         # Select pairs
         selection_probs = np.array(fit_ratios) / sum(fit_ratios)
@@ -80,45 +85,42 @@ class FightGA:
             second_sel_probs /= sum(second_sel_probs)
             parent2 = np.random.choice(len(fit_ratios)-1, p=second_sel_probs)
             pairs.append((parent1, parent2))
-        #print(f"{pairs}")
         return pairs
 
     def doCrossover(self, pairs):
         # Perform a crossover operation between two individuals, with a given probability
         # and constraint on the cutting point
         new_pop = []
+
         for i in range(len(pairs)):
-            sequence1 = list(self.population[pairs[i][0]])
-            sequence2 = list(self.population[pairs[i][1]])
+            parent1 = self.population[pairs[i][0]]
+            parent2 = self.population[pairs[i][1]]
             if random.random() < self.crossover_prob: # do crossover for every attributes
-                cross_point = random.randint(1, self.num_attributes - 1) * self.nbits
+                cross_point = random.randint(1, self.num_attributes - 1)
                 #cross_point = self.crossover_cutting_point
-                new_seq1 = sequence1[:cross_point] + sequence2[cross_point:]
-                new_seq2 = sequence2[:cross_point] + sequence1[cross_point:]
-                new_pop.append(''.join(new_seq1))
-                new_pop.append(''.join(new_seq2))
+                child1 = parent1[:cross_point] + parent2[cross_point:]
+                child2 = parent2[:cross_point] + parent1[cross_point:]
+                new_pop.append(child1)
+                new_pop.append(child2)
             else:   # childs = parents
-                new_pop.append(''.join(sequence1))
-                new_pop.append(''.join(sequence2))
-        
-        #print(f"pop : {self.population}")
-        #print(f"new pop : {new_pop}")
+                new_pop.append(parent1)
+                new_pop.append(parent2)
+
         self.population = new_pop
 
     def doMutation(self):
         # Perform a mutation operation over the entire population
         for i in range(self.pop_size):
-            sequence = self.population[i]
-            for j in range(0, len(self.population[i]), self.nbits):
+            for j in range(self.num_attributes):
                 if random.random() < self.mutation_prob:
+                    attribute = self.population[i][j]
+
                     # Apply mutation to random bit on individual attributes
                     random_bit = random.randint(0, self.nbits - 1)
-                    subsequence = list(sequence[j:j+self.nbits])
+                    subsequence = list(attribute)
                     subsequence[random_bit] = '0' if subsequence[random_bit] == '1' else '1'
                     subsequence = ''.join(subsequence)
-                    sequence = sequence[:j] + subsequence + sequence[j+self.nbits:]
-            self.population[i] = sequence
-        #print(f"population : {self.population}")
+                    self.population[i][j] = subsequence
 
     def new_gen(self):
         # Perform a the pair selection, crossover and mutation and
@@ -129,13 +131,14 @@ class FightGA:
         self.current_gen += 1
 
     def main(self):
+        start_time = time.time()
         player = TestPlayer()
         
         # Initialize GA
         self.pop_init()
         self.encode()
 
-        while(self.current_gen < 1500):
+        while(self.current_gen < 1000):
             # Mock fights for every attributes in list
             val_results = []
             rounds_won = []
@@ -147,23 +150,57 @@ class FightGA:
             self.set_attributes_score(val_results, rounds_won)
             
             best_score = np.max(val_results)
+            best_score_index = val_results.index(best_score)
+            best_rw = rounds_won[best_score_index]
             if best_score > self.bestAttributesFitness[1]:
                 best_score_index = val_results.index(best_score)
                 best_run_atts = self.attributes_values[best_score_index]
                 best_rw = rounds_won[best_score_index]
                 self.bestAttributes = best_run_atts
                 self.bestAttributesFitness = (best_rw, best_score)
-                print(f"BEST : fitness = {self.bestAttributesFitness}, {self.bestAttributes}")
+                print(f"[New best] Gen_{self.current_gen} Fitness_{self.bestAttributesFitness}")
+            
+            self.fitness_ndata.append(best_rw)
+            self.fitness_vdata.append(best_score)
 
-            if (self.bestAttributesFitness[0] == 4) and (self.bestAttributesFitness[1] >= 3.95):
-                print(f"Threshold reached. n = {self.bestAttributesFitness[0]}, v = {self.bestAttributesFitness[1]}, atts : {self.bestAttributes}")
+            if (self.bestAttributesFitness[0] == 4) and (self.bestAttributesFitness[1] >= 3.70):
+                print(f"Threshold reached in {time.time() - start_time} s")
+                #self.save_graph()
                 return 0
             
             self.new_gen()
             self.decode()
 
-        print("Max gen reached.")
+        print(f"Max gen reached. Time it took : {time.time() - start_time} s")
+        #self.save_graph()
         return 0
+    
+    def save_graph(self):
+        fig, ax1 = plt.subplots(figsize=(8, 6))
+        v = np.array(self.fitness_vdata)
+        n = np.array(self.fitness_ndata)
+
+        ax1.plot(v, color='b', label='v')
+        ax1.set_xlabel('Generations')
+        ax1.set_ylabel('Valeur cumul. de succès v', color='b')
+        ax1.tick_params(axis='y', labelcolor='b')
+
+        ax2 = ax1.twinx()
+
+        ax2.plot(n, color='r', label='n')
+        ax2.set_ylabel('Nombre de round(s) remporté(s) n', color='r')
+        ax2.tick_params(axis='y', labelcolor='r')
+
+        lines, labels = ax1.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        ax2.legend(lines + lines2, labels + labels2, loc='upper left')
+
+        plt.title('Performance algo. génétique')
+
+        path = 'MonsterGraphs/'
+        contenu = os.listdir(path)
+        nb_file = len([f for f in contenu if os.path.isfile(os.path.join(path, f))])
+        plt.savefig(path + 'graph-' + f'{nb_file}.png')
 
 
 def twos_complement(n, nbits):
