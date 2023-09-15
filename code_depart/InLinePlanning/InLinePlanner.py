@@ -62,11 +62,13 @@ class InLinePlanner:
                 for block in blocks_on_map:
                     if block.value in self.values and not (block in self.visited):
                         if current_node and block:
-                            astar = AStar(blocks_on_map)
-                            path = astar.astar(current_node.block_on_map, block)
-                            possible_paths.append(path)
-                            costs.append(path.f_value)
-                if len(costs) > 0 and  min(costs) < self.allowed_deviation:
+                            heuristic = abs(current_node.block_on_map.x - block.x) + abs(current_node.block_on_map.y - block.y)
+                            if heuristic < self.allowed_deviation:
+                                astar = AStar(blocks_on_map)
+                                path = astar.astar(current_node.block_on_map, block)
+                                possible_paths.append(path)
+                                costs.append(path.f_value)
+                if len(costs) > 0:
                     min_index = costs.index(min(costs))
                     self.on_side_path = True
                     self.path_temp = possible_paths[min_index]
@@ -98,6 +100,7 @@ class InLinePlanner:
                     self.path_temp.append(current_path)
                     toadd = copy.deepcopy(self.path_temp)
                     self.path.append(toadd)
+        print(self.visited)
         if len(self.path) > 1:
             concatenated_list = [element for subarray in reversed(self.path[1:]) for element in subarray]
         else:

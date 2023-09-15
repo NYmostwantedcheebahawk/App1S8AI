@@ -1,3 +1,5 @@
+import copy
+
 from InLinePlanning.BlockOnMap import BlockOnMapNode
 
 class AStar:
@@ -11,18 +13,39 @@ class AStar:
             new_x, new_y = x + dx, y + dy
             for neighbor in self.blocks_on_map:
                 if neighbor.x == new_x and neighbor.y == new_y:
-                    neighbors.append(BlockOnMapNode(neighbor, block.g_value+1, block.g_value+1+neighbor.heuristics, str(neighbor.x) + str(neighbor.y),block))
+                    symbolex = ""
+                    symboley = ""
+                    if neighbor.x < 10:
+                        symbolex = "0"+str(neighbor.x)
+                    else:
+                        symbolex = str(neighbor.x)
+                    if neighbor.y < 10:
+                        symboley = "0"+str(neighbor.y)
+                    else:
+                        symboley = str(neighbor.y)
+                    neighbors.append(BlockOnMapNode(neighbor, block.g_value+1, block.g_value+1+neighbor.heuristics, symbolex + symboley,block))
         return neighbors
 
     def astar(self, start ,end):
         frontier = []
 
-        frontier.append(BlockOnMapNode(start, 0, start.heuristics,str(start.x) + str(start.y),None))
+        symbolex = ""
+        symboley = ""
+        if start.x < 10:
+            symbolex = "0" + str(start.x)
+        else:
+            symbolex = str(start.x)
+        if start.y < 10:
+            symboley = "0" + str(start.y)
+        else:
+            symboley = str(start.y)
+        frontier.append(BlockOnMapNode(start, 0, start.heuristics,symbolex + symboley,None))
         reached_state = []
 
         pursuing_node = frontier[0]
         while not(len(frontier) == 0):
-            reached_state.append(pursuing_node.symbole)
+            symbtoadd = copy.deepcopy(pursuing_node.symbole)
+            reached_state.append(symbtoadd)
             for node in frontier:
                 if node.symbole in reached_state:
                     frontier.remove(node)
