@@ -37,7 +37,15 @@ class TileNavigation:
         self._path_progress = 0
 
     def set_path(self, path):
-        self._path = path
+        self._path = []
+        temp_tile = None
+        for tile in path:
+            if temp_tile is None:
+                temp_tile = tile
+                self._path.append(tile)
+            elif temp_tile != tile:
+                self._path.append(tile)
+            temp_tile = tile
         self._path_progress = 0
 
     def step(self):
